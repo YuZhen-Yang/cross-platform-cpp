@@ -1,0 +1,58 @@
+BasedOnStyle: LLVM
+
+# 缩进：使用 Tab
+UseTab: Always
+IndentWidth: 4
+TabWidth: 4
+
+# 访问修饰符顶格（与 class 对齐）
+AccessModifierOffset: -4
+
+# 每行最大列数
+ColumnLimit: 90
+
+# namespace 内容缩进
+NamespaceIndentation: All
+
+# 大括号风格：自定义（类/函数大括号另起一行，namespace 同行）
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterNamespace: false
+  AfterClass: true
+  AfterFunction: true
+  AfterStruct: true
+  AfterEnum: true
+  AfterControlStatement: Always
+  BeforeElse: true
+  BeforeCatch: true
+
+# 指针/引用符号靠近类型
+PointerAlignment: Left
+
+# 函数参数：对齐到开括号
+AlignAfterOpenBracket: Align
+BinPackArguments: false
+BinPackParameters: false
+
+# 行尾注释对齐
+AlignTrailingComments: true
+
+# include 不自动排序
+SortIncludes: Never
+
+# 短函数：只允许类内 inline 函数保持一行，其他展开
+AllowShortFunctionsOnASingleLine: InlineOnly
+
+# 短 lambda：允许 inline 调用中的 lambda 保持一行，多行写法不强制合并
+AllowShortLambdasOnASingleLine: Inline
+
+# 构造函数初始化列表：先试同一行，放不下再试下一行全部塞一起,再放不下才每个独占一行
+PackConstructorInitializers: NextLine 
+
+# 其他常用设置
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Cpp11BracedListStyle: true

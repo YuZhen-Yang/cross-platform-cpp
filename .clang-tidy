@@ -1,0 +1,93 @@
+---
+# 基于 Google C++ 风格规范
+# 文档: https://clang.llvm.org/extra/clang-tidy/checks/
+
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  google-*,
+  readability-identifier-naming,
+  modernize-use-nullptr,
+  modernize-use-override,
+  modernize-use-default-member-init,
+  modernize-use-using,
+  bugprone-*,
+  performance-*,
+  -bugprone-easily-swappable-parameters,
+  -performance-avoid-endl
+
+# 将命名违规视为错误（可改为 false 改成警告）
+WarningsAsErrors: true
+
+# 对头文件也做检查（设为 false 可只检查 .cpp）
+HeaderFilterRegex: ".*"
+
+CheckOptions:
+  # ──────────────────────────────
+  # 类 / 结构体：PascalCase
+  # ──────────────────────────────
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+
+  # ──────────────────────────────
+  # 成员变量：私有/保护加 m 前缀，camelBack
+  # 例：mSampleRate, mConnected
+  # ──────────────────────────────
+  - key: readability-identifier-naming.PrivateMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.PrivateMemberPrefix
+    value: m
+
+  - key: readability-identifier-naming.ProtectedMemberCase
+    value: CamelCase
+  - key: readability-identifier-naming.ProtectedMemberPrefix
+    value: m
+
+  # 公有成员变量（struct 数据成员）：snake_case，无前缀
+  - key: readability-identifier-naming.PublicMemberCase
+    value: lower_case
+
+  # ──────────────────────────────
+  # 函数 / 方法：camelBack（Google 风格）
+  # 例：startAcquisition(), sendFrame()
+  # ──────────────────────────────
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MethodCase
+    value: camelBack
+
+  # ──────────────────────────────
+  # 变量
+  # ──────────────────────────────
+  - key: readability-identifier-naming.LocalVariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+
+  # ──────────────────────────────
+  # 常量 / 枚举：kConstantName（Google 风格）
+  # ──────────────────────────────
+  - key: readability-identifier-naming.ConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstantPrefix
+    value: k
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantPrefix
+    value: k
+
+  # ──────────────────────────────
+  # 命名空间：snake_case（Google 风格）
+  # ──────────────────────────────
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+
+  # ──────────────────────────────
+  # 类型别名（using / typedef）
+  # ──────────────────────────────
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
