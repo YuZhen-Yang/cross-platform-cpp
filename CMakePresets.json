@@ -13,7 +13,8 @@
       "binaryDir": "${sourceDir}/build/${presetName}",
       "toolchainFile": "${sourceDir}/conan/Release/conan_toolchain.cmake",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_PREFIX_PATH":"${sourceDir}/third_party/Log4Qt/1.5.1/install"
       }
     },
     {

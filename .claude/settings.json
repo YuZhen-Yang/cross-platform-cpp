@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(conan search:*)",
+      "Bash(conan create:*)",
+      "Bash(conan test:*)",
+      "Bash(conan inspect:*)",
+      "Bash(python -c ':*)",
+      "Bash(conan list:*)",
+      "Bash(conan cache:*)",
+      "Read(//e/dev/conan/conan-cache/p/qt9ea0924fbc6db/e/**)",
+      "Read(//e/dev/conan/conan-cache/p/qtf4e15dc5d496f/p/include/QtCore/**)",
+      "Read(//e/dev/conan/conan-cache/p/qtf4e15dc5d496f/p/include/**)",
+      "Read(//e/dev/conan/conan-cache/p/qtf4e15dc5d496f/p/lib/cmake/Qt5Core/**)",
+      "Read(//e/dev/conan/conan-cache/p/b/log4q0b93f858c41b8/b/build/generators/**)"
+    ]
+  }
+}

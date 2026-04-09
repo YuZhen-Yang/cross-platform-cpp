@@ -16,12 +16,10 @@ class CrossPlatformProjectConan(ConanFile):
     }
 
     def requirements(self):
-        pass
+        self.requires("vtk/[~9.3]")
 
     def layout(self):
         build_type = str(self.settings.build_type)
-        self.folders.source = "."
-        self.folders.build = os.path.join("conan", build_type)
         self.folders.generators = os.path.join("conan", build_type)
 
     def generate(self):
