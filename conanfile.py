@@ -13,10 +13,16 @@ class CrossPlatformProjectConan(ConanFile):
     default_options = {
         "shared": False,
         "fPIC": True,
+        # Qt options
+        "qt/*:shared": True,
+        "qt/*:widgets": True,
+        "qt/*:gui": True
     }
 
     def requirements(self):
+        self.requires("qt/[~5.15]")
         self.requires("vtk/[~9.3]")
+        self.requires("log4qt/[~1.5]")
 
     def layout(self):
         build_type = str(self.settings.build_type)

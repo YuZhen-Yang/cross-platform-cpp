@@ -26,13 +26,15 @@ class VTKConan(ConanFile):
                "boost_version": ['1.65', '1.68', '1.71', '1.83'],
                "os_version": ["linux", "windows", "other"]}
     # Declare which are the default values to the options in the options attribute.
-    default_options = { 
-        "shared": True, 
-        "qt": True, 
-        "python": False, 
-        "mpi": False, 
-        "fPIC": False, 
-        "boost_version": "1.83" }
+    default_options = {
+        "shared": True,
+        "qt": True,
+        "python": False,
+        "mpi": False,
+        "fPIC": False,
+        "boost_version": "1.83",
+        "qt/*:shared": True,
+    }
     # Copy/distribute VTK's configure files.
     exports = ["CMakeLists.txt", "FindVTK.cmake", "*.diff"]
     # The original VTK 8.2 Conan 1 recipe.

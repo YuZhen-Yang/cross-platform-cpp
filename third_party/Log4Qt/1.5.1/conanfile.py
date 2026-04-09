@@ -28,6 +28,7 @@ class Log4QtConan(ConanFile):
         "with_qml":     False,
         "with_telnet":  False,
         "with_db":      False,
+        "qt/*:shared":  True,
     }
 
     # Source lives alongside this recipe in the same directory.
