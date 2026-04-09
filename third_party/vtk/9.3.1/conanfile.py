@@ -209,6 +209,17 @@ class VTKConan(ConanFile):
     # This is called when running recipes for packages which are dependant of this one.
     # E.g. In their `requires = ...` or `tool_requires = ...` attributes.
     def package_info(self):
+        # 让 CMakeDeps 不生成 Conan wrapper，直接使用 VTK 安装后自带的
+        # cmake 配置（vtk-config.cmake），这样 vtk_module_autoinit 等
+        # 官方函数可以正常使用，与 https://docs.vtk.org 的写法保持一致。
+        vtk_cmake_dir = os.path.join(
+            self.package_folder, "lib", "cmake",
+            "vtk-%s" % self.short_version
+        )
+        self.cpp_info.set_property("cmake_find_mode", "none")
+        self.cpp_info.builddirs = [vtk_cmake_dir]
+        return
+
         libs = [
             "vtkChartsCore-%s" % self.short_version,
             "vtkCommonColor-%s" % self.short_version,

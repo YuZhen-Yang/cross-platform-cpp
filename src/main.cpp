@@ -1,109 +1,70 @@
-#include <QApplication>
-#include <QMainWindow>
-#include <QStatusBar>
-#include <QString>
-
-// Log4Qt
-#include <log4qt/logger.h>
-#include <log4qt/logmanager.h>
-#include <log4qt/consoleappender.h>
-#include <log4qt/fileappender.h>
-#include <log4qt/ttcclayout.h>
-
-// VTK
 #include <vtkActor.h>
-#include <vtkConeSource.h>
-#include <vtkGenericOpenGLRenderWindow.h>
+#include <vtkCamera.h>
+#include <vtkCylinderSource.h>
+#include <vtkNamedColors.h>
 #include <vtkNew.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkRenderer.h>
+#include <vtkProperty.h>
+#include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
-#include <vtkInteractorStyleTrackballCamera.h>
-#include <QVTKOpenGLNativeWidget.h>
+#include <vtkRenderer.h>
 
-static Log4Qt::Logger* logger = Log4Qt::Logger::logger("main");
+#include <array>
 
-static void initLogger()
+int main(int, char*[])
 {
-	auto* layout = new Log4Qt::TTCCLayout();
-	layout->setName("layout");
-	layout->activateOptions();
+	vtkNew<vtkNamedColors> colors;
 
-	auto* consoleAppender =
-		new Log4Qt::ConsoleAppender(layout, Log4Qt::ConsoleAppender::STDOUT_TARGET);
-	consoleAppender->setName("console");
-	consoleAppender->activateOptions();
+	// Set the background color.
+	std::array<unsigned char, 4> bkg{{26, 51, 102, 255}};
+	colors->SetColor("BkgColor", bkg.data());
 
-	auto* fileAppender = new Log4Qt::FileAppender(layout, "app.log", true);
-	fileAppender->setName("file");
-	fileAppender->activateOptions();
+	// This creates a polygonal cylinder model with eight circumferential facets
+	// (i.e, in practice an octagonal prism).
+	vtkNew<vtkCylinderSource> cylinder;
+	cylinder->SetResolution(8);
 
-	auto* root = Log4Qt::Logger::rootLogger();
-	root->addAppender(consoleAppender);
-	root->addAppender(fileAppender);
-	root->setLevel(Log4Qt::Level::DEBUG_INT);
+	// The mapper is responsible for pushing the geometry into the graphics
+	// library. It may also do color mapping, if scalars or other attributes are
+	// defined.
+	vtkNew<vtkPolyDataMapper> cylinderMapper;
+	cylinderMapper->SetInputConnection(cylinder->GetOutputPort());
 
-	Log4Qt::LogManager::setHandleQtMessages(true);
-}
+	// The actor is a grouping mechanism: besides the geometry (mapper), it
+	// also has a property, transformation matrix, and/or texture map.
+	// Here we set its color and rotate it around the X and Y axes.
+	vtkNew<vtkActor> cylinderActor;
+	cylinderActor->SetMapper(cylinderMapper);
+	cylinderActor->GetProperty()->SetColor(colors->GetColor4d("Tomato").GetData());
+	cylinderActor->RotateX(30.0);
+	cylinderActor->RotateY(-45.0);
 
-static void shutdownLogger()
-{
-	auto* root = Log4Qt::Logger::rootLogger();
-	root->removeAllAppenders();
-	root->loggerRepository()->shutdown();
-}
-
-int main(int argc, char* argv[])
-{
-	QVTKOpenGLNativeWidget::initializeOpenGLFunctions();
-	QSurfaceFormat::setDefaultFormat(QVTKOpenGLNativeWidget::defaultFormat());
-
-	QApplication app(argc, argv);
-	app.setApplicationName("CrossPlatformTest");
-	app.setApplicationVersion("0.1.0");
-
-	initLogger();
-
-	logger->info("Application started: Qt %1, VTK %2, Log4Qt %3",
-				 QString(qVersion()),
-				 QString(vtkVersion::GetVTKVersionFull()),
-				 QString(Log4Qt::LOG4QT_VERSION_STR));
-
-	// --- VTK pipeline ---
-	vtkNew<vtkConeSource> cone;
-	cone->SetResolution(64);
-
-	vtkNew<vtkPolyDataMapper> mapper;
-	mapper->SetInputConnection(cone->GetOutputPort());
-
-	vtkNew<vtkActor> actor;
-	actor->SetMapper(mapper);
-
+	// The renderer generates the image
+	// which is then displayed on the render window.
+	// It can be thought of as a scene to which the actor is added
 	vtkNew<vtkRenderer> renderer;
-	renderer->AddActor(actor);
-	renderer->SetBackground(0.1, 0.2, 0.4);
+	renderer->AddActor(cylinderActor);
+	renderer->SetBackground(colors->GetColor3d("BkgColor").GetData());
+	// Zoom in a little by accessing the camera and invoking its "Zoom" method.
 	renderer->ResetCamera();
+	renderer->GetActiveCamera()->Zoom(1.5);
 
-	vtkNew<vtkGenericOpenGLRenderWindow> renderWindow;
+	// The render window is the actual GUI window
+	// that appears on the computer screen
+	vtkNew<vtkRenderWindow> renderWindow;
+	renderWindow->SetSize(300, 300);
 	renderWindow->AddRenderer(renderer);
+	renderWindow->SetWindowName("Cylinder");
 
-	// --- Qt window ---
-	QMainWindow mainWindow;
-	mainWindow.setWindowTitle("Qt + VTK + Log4Qt — Minimal Demo");
-	mainWindow.resize(800, 600);
+	// The render window interactor captures mouse events
+	// and will perform appropriate camera or actor manipulation
+	// depending on the nature of the events.
+	vtkNew<vtkRenderWindowInteractor> renderWindowInteractor;
+	renderWindowInteractor->SetRenderWindow(renderWindow);
 
-	auto* vtkWidget = new QVTKOpenGLNativeWidget(&mainWindow);
-	vtkWidget->setRenderWindow(renderWindow);
-	mainWindow.setCentralWidget(vtkWidget);
-	mainWindow.statusBar()->showMessage(
-		"Rotate: left-drag | Zoom: scroll | Pan: middle-drag");
+	// This starts the event loop and as a side effect causes an initial render.
+	renderWindow->Render();
+	renderWindowInteractor->Start();
 
-	mainWindow.show();
-	logger->info("Main window shown — entering event loop");
-
-	int ret = QApplication::exec();
-
-	logger->info("Event loop exited with code %1", ret);
-	shutdownLogger();
-	return ret;
+	return EXIT_SUCCESS;
 }
