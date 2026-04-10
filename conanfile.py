@@ -16,7 +16,8 @@ class CrossPlatformProjectConan(ConanFile):
         # Qt options
         "qt/*:shared": True,
         "qt/*:widgets": True,
-        "qt/*:gui": True
+        "qt/*:gui": True,
+        "vtk/*:qt/*:shared": True,   # ← 确保 VTK 依赖的 Qt 也是 shared
     }
 
     def requirements(self):

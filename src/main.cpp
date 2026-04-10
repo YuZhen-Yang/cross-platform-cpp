@@ -1,70 +1,155 @@
+#include <QVTKOpenGLNativeWidget.h>
 #include <vtkActor.h>
-#include <vtkCamera.h>
-#include <vtkCylinderSource.h>
-#include <vtkNamedColors.h>
-#include <vtkNew.h>
-#include <vtkPolyDataMapper.h>
+#include <vtkDataSetMapper.h>
+#include <vtkDoubleArray.h>
+#include <vtkGenericOpenGLRenderWindow.h>
+#include <vtkPointData.h>
 #include <vtkProperty.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
+#include <vtkSphereSource.h>
 
-#include <array>
+#include <QApplication>
+#include <QDebug>
+#include <QDockWidget>
+#include <QGridLayout>
+#include <QLabel>
+#include <QMainWindow>
+#include <QPointer>
+#include <QPushButton>
+#include <QVBoxLayout>
 
-int main(int, char*[])
+#include <cmath>
+#include <cstdlib>
+#include <random>
+
+namespace {
+	/**
+	 * Deform the sphere source using a random amplitude and modes and render it in
+	 * the window
+	 *
+	 * @param sphere the original sphere source
+	 * @param mapper the mapper for the scene
+	 * @param window the window to render to
+	 * @param randEng the random number generator engine
+	 */
+	void Randomize(vtkSphereSource* sphere,
+				   vtkDataSetMapper* mapper,
+				   vtkGenericOpenGLRenderWindow* window,
+				   std::mt19937& randEng);
+} // namespace
+
+int main(int argc, char* argv[])
 {
-	vtkNew<vtkNamedColors> colors;
+	QSurfaceFormat::setDefaultFormat(QVTKOpenGLNativeWidget::defaultFormat());
 
-	// Set the background color.
-	std::array<unsigned char, 4> bkg{{26, 51, 102, 255}};
-	colors->SetColor("BkgColor", bkg.data());
+	QApplication app(argc, argv);
+	qDebug() << "QApplication created, instance:" << QApplication::instance();
 
-	// This creates a polygonal cylinder model with eight circumferential facets
-	// (i.e, in practice an octagonal prism).
-	vtkNew<vtkCylinderSource> cylinder;
-	cylinder->SetResolution(8);
+	// Main window.
+	QMainWindow mainWindow;
+	mainWindow.resize(1200, 900);
 
-	// The mapper is responsible for pushing the geometry into the graphics
-	// library. It may also do color mapping, if scalars or other attributes are
-	// defined.
-	vtkNew<vtkPolyDataMapper> cylinderMapper;
-	cylinderMapper->SetInputConnection(cylinder->GetOutputPort());
+	// Control area.
+	QDockWidget controlDock;
+	mainWindow.addDockWidget(Qt::LeftDockWidgetArea, &controlDock);
 
-	// The actor is a grouping mechanism: besides the geometry (mapper), it
-	// also has a property, transformation matrix, and/or texture map.
-	// Here we set its color and rotate it around the X and Y axes.
-	vtkNew<vtkActor> cylinderActor;
-	cylinderActor->SetMapper(cylinderMapper);
-	cylinderActor->GetProperty()->SetColor(colors->GetColor4d("Tomato").GetData());
-	cylinderActor->RotateX(30.0);
-	cylinderActor->RotateY(-45.0);
+	QLabel controlDockTitle("Control Dock");
+	controlDockTitle.setMargin(20);
+	controlDock.setTitleBarWidget(&controlDockTitle);
 
-	// The renderer generates the image
-	// which is then displayed on the render window.
-	// It can be thought of as a scene to which the actor is added
+	QPointer<QVBoxLayout> dockLayout = new QVBoxLayout();
+	QWidget layoutContainer;
+	layoutContainer.setLayout(dockLayout);
+	controlDock.setWidget(&layoutContainer);
+
+	QPushButton randomizeButton;
+	randomizeButton.setText("Randomize");
+	dockLayout->addWidget(&randomizeButton);
+
+	// Render area.
+	QPointer<QVTKOpenGLNativeWidget> vtkRenderWidget = new QVTKOpenGLNativeWidget();
+	mainWindow.setCentralWidget(vtkRenderWidget);
+
+	// VTK part.
+	vtkNew<vtkGenericOpenGLRenderWindow> window;
+	vtkRenderWidget->setRenderWindow(window.Get());
+
+	vtkNew<vtkSphereSource> sphere;
+	sphere->SetRadius(1.0);
+	sphere->SetThetaResolution(100);
+	sphere->SetPhiResolution(100);
+
+	vtkNew<vtkDataSetMapper> mapper;
+	mapper->SetInputConnection(sphere->GetOutputPort());
+
+	vtkNew<vtkActor> actor;
+	actor->SetMapper(mapper);
+	actor->GetProperty()->SetEdgeVisibility(true);
+	actor->GetProperty()->SetRepresentationToSurface();
+
 	vtkNew<vtkRenderer> renderer;
-	renderer->AddActor(cylinderActor);
-	renderer->SetBackground(colors->GetColor3d("BkgColor").GetData());
-	// Zoom in a little by accessing the camera and invoking its "Zoom" method.
-	renderer->ResetCamera();
-	renderer->GetActiveCamera()->Zoom(1.5);
+	renderer->AddActor(actor);
 
-	// The render window is the actual GUI window
-	// that appears on the computer screen
-	vtkNew<vtkRenderWindow> renderWindow;
-	renderWindow->SetSize(300, 300);
-	renderWindow->AddRenderer(renderer);
-	renderWindow->SetWindowName("Cylinder");
+	window->AddRenderer(renderer);
 
-	// The render window interactor captures mouse events
-	// and will perform appropriate camera or actor manipulation
-	// depending on the nature of the events.
-	vtkNew<vtkRenderWindowInteractor> renderWindowInteractor;
-	renderWindowInteractor->SetRenderWindow(renderWindow);
+	// Setup initial status.
+	std::mt19937 randEng(0);
+	::Randomize(sphere, mapper, window, randEng);
 
-	// This starts the event loop and as a side effect causes an initial render.
-	renderWindow->Render();
-	renderWindowInteractor->Start();
+	// connect the buttons
+	QObject::connect(&randomizeButton, &QPushButton::released, [&]() {
+		::Randomize(sphere, mapper, window, randEng);
+	});
 
-	return EXIT_SUCCESS;
+	mainWindow.show();
+
+	return app.exec();
 }
+
+namespace {
+	void Randomize(vtkSphereSource* sphere,
+				   vtkDataSetMapper* mapper,
+				   vtkGenericOpenGLRenderWindow* window,
+				   std::mt19937& randEng)
+	{
+		// Generate randomness.
+		double randAmp = 0.2 + ((randEng() % 1000) / 1000.0) * 0.2;
+		double randThetaFreq = 1.0 + (randEng() % 9);
+		double randPhiFreq = 1.0 + (randEng() % 9);
+
+		// Extract and prepare data.
+		sphere->Update();
+		vtkSmartPointer<vtkPolyData> newSphere;
+		newSphere.TakeReference(sphere->GetOutput()->NewInstance());
+		newSphere->DeepCopy(sphere->GetOutput());
+		vtkNew<vtkDoubleArray> height;
+		height->SetName("Height");
+		height->SetNumberOfComponents(1);
+		height->SetNumberOfTuples(newSphere->GetNumberOfPoints());
+		newSphere->GetPointData()->AddArray(height);
+
+		// Deform the sphere.
+		for (int iP = 0; iP < newSphere->GetNumberOfPoints(); iP++)
+		{
+			double pt[3] = {0.0};
+			newSphere->GetPoint(iP, pt);
+			double theta = std::atan2(pt[1], pt[0]);
+			double phi =
+				std::atan2(pt[2], std::sqrt(std::pow(pt[0], 2) + std::pow(pt[1], 2)));
+			double thisAmp =
+				randAmp * std::cos(randThetaFreq * theta) * std::sin(randPhiFreq * phi);
+			height->SetValue(iP, thisAmp);
+			pt[0] += thisAmp * std::cos(theta) * std::cos(phi);
+			pt[1] += thisAmp * std::sin(theta) * std::cos(phi);
+			pt[2] += thisAmp * std::sin(phi);
+			newSphere->GetPoints()->SetPoint(iP, pt);
+		}
+		newSphere->GetPointData()->SetScalars(height);
+
+		// Reconfigure the pipeline to take the new deformed sphere.
+		mapper->SetInputDataObject(newSphere);
+		mapper->SetScalarModeToUsePointData();
+		mapper->ColorByArrayComponent("Height", 0);
+		window->Render();
+	}
+} // namespace

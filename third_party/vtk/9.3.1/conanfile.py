@@ -99,8 +99,16 @@ class VTKConan(ConanFile):
         get(self, **self.conan_data["sources"][self.version],
             strip_root=True, destination=".")
 
+    # 将 Qt 的 shared/static 模式纳入 VTK 自身的 package ID 计算。
+    # 若不加此方法，Conan 2 默认不把依赖的 options 计入 package ID，
+    # 导致"VTK + static Qt"与"VTK + shared Qt"被识别为同一个包，
+    # 进而总是复用旧缓存，产生进程内两套 Qt 运行时的问题。
+    def package_id(self):
+        if self.info.options.qt:
+            self.info.requires["qt"].full_package_mode()
+
     # Configure or constrain the available options in a package before assigning them a value. A typical use case is
-    # to remove an option in a given platform. For example, the SSE2 flag doesn’t exist in architectures different 
+    # to remove an option in a given platform. For example, the SSE2 flag doesn’t exist in architectures different
     # than 32 bits, so it should be removed in this method.
     def config_options(self):
         if self.settings.compiler == "msvc":

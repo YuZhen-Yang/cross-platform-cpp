@@ -1,66 +1,92 @@
-cmake_minimum_required(VERSION 3.29)
-project(cross_platform_test VERSION 0.1.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW)
+  cmake_policy(SET CMP0071 NEW)
+endif()
 
-find_package(Qt5 REQUIRED COMPONENTS Core Widgets Gui OpenGL)
-find_package(Log4Qt REQUIRED)
-find_package(VTK REQUIRED COMPONENTS
-  CommonColor
+PROJECT(MinimalQtVTKApp)
+
+find_package(VTK COMPONENTS 
   CommonCore
+  CommonDataModel
   FiltersSources
+  GUISupportQt
   InteractionStyle
   RenderingContextOpenGL2
   RenderingCore
   RenderingFreeType
   RenderingGL2PSOpenGL2
   RenderingOpenGL2
+  GUISupportQt
+  RenderingQt
 )
-if (NOT VTK_FOUND)
-  message(FATAL_ERROR "CylinderExample: Unable to find the VTK build folder.")
+
+if(NOT VTK_FOUND)
+  message(FATAL_ERROR "MinimalQtVTKApp: Unable to find the VTK build folder.")
 endif()
-message(STATUS "Found Log4Qt: ${Log4Qt_VERSION} (${Log4Qt_DIR})")
-message(STATUS "Found VTK:    ${VTK_VERSION}")
-message(STATUS "Found Qt5:    ${Qt5_VERSION}")
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# 服务于 vscode clangd 插件
-add_custom_target(copy_compile_commands ALL
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_BINARY_DIR}/compile_commands.json
-    ${CMAKE_SOURCE_DIR}/compile_commands.json
+if(NOT(TARGET VTK::GUISupportQt))
+  message(FATAL_ERROR "MinimalQtVTKApp: VTK not built with Qt support.")
+endif()
+
+if(NOT DEFINED VTK_QT_VERSION)
+  set(VTK_QT_VERSION 5)
+endif()
+
+set(qt_components Core Gui Widgets)
+if(${VTK_QT_VERSION} VERSION_GREATER_EQUAL 6)
+  list(APPEND qt_components OpenGLWidgets)
+endif()
+list(SORT qt_components)
+# We have ui files, so this will also bring in the macro:
+#   qt5_wrap_ui or qt_wrap_ui from Widgets.
+find_package(Qt${VTK_QT_VERSION} QUIET
+  REQUIRED COMPONENTS ${qt_components}
 )
 
-# --- 最小验证程序 ---
+foreach(_qt_comp IN LISTS qt_components)
+  list(APPEND qt_modules "Qt${VTK_QT_VERSION}::${_qt_comp}")
+endforeach()
+
+message (STATUS "VTK_VERSION: ${VTK_VERSION}, Qt Version: ${Qt${VTK_QT_VERSION}Widgets_VERSION}")
+
+# Instruct CMake to run moc and uic automatically when needed.
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTORCC ON)
 
-add_executable(minimal_demo
-    src/main.cpp
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+
+file(GLOB UI_FILES src/*.ui)
+file(GLOB QT_WRAP src/*.h)
+file(GLOB CXX_FILES src/*.cxx src/*.cpp)
+
+# For VTK versions greater than or equal to 8.90.0:
+#  CMAKE_AUTOUIC is ON so we handle uic automatically for Qt targets.
+#  CMAKE_AUTOMOC is ON so we handle moc automatically for Qt targets.
+
+# Prevent a "command line is too long" failure in Windows.
+set(CMAKE_NINJA_FORCE_RESPONSE_FILE "ON" CACHE BOOL "Force Ninja to use response files.")
+# CMAKE_AUTOMOC in ON so the MOC headers will be automatically wrapped.
+add_executable(MinimalQtVTKApp MACOSX_BUNDLE
+  ${CXX_FILES} ${UI_FILES} ${QT_WRAP}
 )
 
-target_link_libraries(minimal_demo PRIVATE
-    Qt5::Core
-    Qt5::Widgets
-    Qt5::Gui
-    Qt5::OpenGL
-    Log4Qt::Log4Qt
-    ${VTK_LIBRARIES}
-)
-
+target_link_libraries(MinimalQtVTKApp ${qt_modules})
+target_link_libraries(MinimalQtVTKApp ${VTK_LIBRARIES})
+# vtk_module_autoinit is needed
 vtk_module_autoinit(
-    TARGETS  minimal_demo
-    MODULES  ${VTK_LIBRARIES}
+  TARGETS MinimalQtVTKApp
+  MODULES ${VTK_LIBRARIES}
 )
+
 
 if(WIN32)
     # Windows 无 RPATH：运行时 DLL 和 Qt 平台插件需复制到 exe 同级目录
-    add_custom_command(TARGET minimal_demo POST_BUILD
+    add_custom_command(TARGET MinimalQtVTKApp POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_RUNTIME_DLLS:minimal_demo>
-                $<TARGET_FILE_DIR:minimal_demo>
+                $<TARGET_RUNTIME_DLLS:MinimalQtVTKApp>
+                $<TARGET_FILE_DIR:MinimalQtVTKApp>
         COMMAND_EXPAND_LISTS
     )
 
@@ -69,9 +95,9 @@ if(WIN32)
     else()
         set(_qt_pkg "${qt_PACKAGE_FOLDER_RELEASE}")
     endif()
-    add_custom_command(TARGET minimal_demo POST_BUILD
+    add_custom_command(TARGET MinimalQtVTKApp POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
                 "${_qt_pkg}/plugins/platforms"
-                "$<TARGET_FILE_DIR:minimal_demo>/platforms"
+                "$<TARGET_FILE_DIR:MinimalQtVTKApp>/platforms"
     )
 endif()
