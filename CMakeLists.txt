@@ -1,88 +1,106 @@
-cmake_minimum_required(VERSION 3.29 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.29)
 
 if(POLICY CMP0020)
-  cmake_policy(SET CMP0020 NEW)
-  cmake_policy(SET CMP0071 NEW)
+    cmake_policy(SET CMP0020 NEW)
+    cmake_policy(SET CMP0071 NEW)
 endif()
 
-PROJECT(MinimalQtVTKApp)
 
-find_package(VTK COMPONENTS 
-  CommonCore
-  CommonDataModel
-  FiltersSources
-  GUISupportQt
-  InteractionStyle
-  RenderingContextOpenGL2
-  RenderingCore
-  RenderingFreeType
-  RenderingGL2PSOpenGL2
-  RenderingOpenGL2
-  GUISupportQt
-  RenderingQt
+project(MinimalQtVTKApp
+VERSION 1.0.0
+LANGUAGES CXX
 )
 
-if(NOT VTK_FOUND)
-  message(FATAL_ERROR "MinimalQtVTKApp: Unable to find the VTK build folder.")
-endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if(NOT(TARGET VTK::GUISupportQt))
-  message(FATAL_ERROR "MinimalQtVTKApp: VTK not built with Qt support.")
+# --------------------------------------------------------------------------
+# VTK
+# --------------------------------------------------------------------------
+find_package(VTK REQUIRED COMPONENTS
+CommonCore
+CommonDataModel
+FiltersSources
+GUISupportQt
+InteractionStyle
+RenderingContextOpenGL2
+RenderingCore
+RenderingFreeType
+RenderingGL2PSOpenGL2
+RenderingOpenGL2
+RenderingQt
+)
+
+if(NOT TARGET VTK::GUISupportQt)
+message(FATAL_ERROR "MinimalQtVTKApp: VTK not built with Qt support.")
 endif()
 
 if(NOT DEFINED VTK_QT_VERSION)
-  set(VTK_QT_VERSION 5)
+set(VTK_QT_VERSION 5)
 endif()
 
-set(qt_components Core Gui Widgets)
-if(${VTK_QT_VERSION} VERSION_GREATER_EQUAL 6)
-  list(APPEND qt_components OpenGLWidgets)
+# --------------------------------------------------------------------------
+# Qt
+# --------------------------------------------------------------------------
+set(MINIMALQTVTK_QT_COMPONENTS Core Gui Widgets)
+if(VTK_QT_VERSION VERSION_GREATER_EQUAL 6)
+list(APPEND MINIMALQTVTK_QT_COMPONENTS OpenGLWidgets)
 endif()
-list(SORT qt_components)
-# We have ui files, so this will also bring in the macro:
-#   qt5_wrap_ui or qt_wrap_ui from Widgets.
-find_package(Qt${VTK_QT_VERSION} QUIET
-  REQUIRED COMPONENTS ${qt_components}
-)
 
-foreach(_qt_comp IN LISTS qt_components)
-  list(APPEND qt_modules "Qt${VTK_QT_VERSION}::${_qt_comp}")
+find_package(Qt${VTK_QT_VERSION} REQUIRED COMPONENTS ${MINIMALQTVTK_QT_COMPONENTS})
+
+set(MINIMALQTVTK_QT_TARGETS "")
+foreach(_comp IN LISTS MINIMALQTVTK_QT_COMPONENTS)
+list(APPEND MINIMALQTVTK_QT_TARGETS "Qt${VTK_QT_VERSION}::${_comp}")
 endforeach()
 
-message (STATUS "VTK_VERSION: ${VTK_VERSION}, Qt Version: ${Qt${VTK_QT_VERSION}Widgets_VERSION}")
+message(STATUS "VTK_VERSION: ${VTK_VERSION}, Qt Version: ${Qt${VTK_QT_VERSION}Widgets_VERSION}")
 
-# Instruct CMake to run moc and uic automatically when needed.
+# --------------------------------------------------------------------------
+# Log4Qt
+# --------------------------------------------------------------------------
+find_package(Log4Qt REQUIRED)
+
+# --------------------------------------------------------------------------
+# Target
+# --------------------------------------------------------------------------
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
+# Prevent "command line is too long" on Windows.
+set(CMAKE_NINJA_FORCE_RESPONSE_FILE ON CACHE BOOL "Force Ninja to use response files.")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-
-file(GLOB UI_FILES src/*.ui)
-file(GLOB QT_WRAP src/*.h)
-file(GLOB CXX_FILES src/*.cxx src/*.cpp)
-
-# For VTK versions greater than or equal to 8.90.0:
-#  CMAKE_AUTOUIC is ON so we handle uic automatically for Qt targets.
-#  CMAKE_AUTOMOC is ON so we handle moc automatically for Qt targets.
-
-# Prevent a "command line is too long" failure in Windows.
-set(CMAKE_NINJA_FORCE_RESPONSE_FILE "ON" CACHE BOOL "Force Ninja to use response files.")
-# CMAKE_AUTOMOC in ON so the MOC headers will be automatically wrapped.
 add_executable(MinimalQtVTKApp MACOSX_BUNDLE
-  ${CXX_FILES} ${UI_FILES} ${QT_WRAP}
+src/main.cpp
 )
 
-target_link_libraries(MinimalQtVTKApp ${qt_modules})
-target_link_libraries(MinimalQtVTKApp ${VTK_LIBRARIES})
-# vtk_module_autoinit is needed
+target_compile_features(MinimalQtVTKApp PRIVATE cxx_std_17)
+
+target_link_libraries(MinimalQtVTKApp
+PRIVATE
+${MINIMALQTVTK_QT_TARGETS}
+${VTK_LIBRARIES}
+Log4Qt::Log4Qt
+)
+
 vtk_module_autoinit(
   TARGETS MinimalQtVTKApp
   MODULES ${VTK_LIBRARIES}
+  )
+  
+  # --------------------------------------------------------------------------
+  # clangd: keep compile_commands.json at source root
+  # --------------------------------------------------------------------------
+  add_custom_target(copy_compile_commands ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_BINARY_DIR}/compile_commands.json
+        ${CMAKE_SOURCE_DIR}/compile_commands.json
+    DEPENDS MinimalQtVTKApp
+    COMMENT "Copying compile_commands.json to source root"
 )
 
-
+# --------------------------------------------------------------------------
+# Windows: copy runtime DLLs and Qt platform plugins next to the exe
+# --------------------------------------------------------------------------
 if(WIN32)
-    # Windows 无 RPATH：运行时 DLL 和 Qt 平台插件需复制到 exe 同级目录
     add_custom_command(TARGET MinimalQtVTKApp POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 $<TARGET_RUNTIME_DLLS:MinimalQtVTKApp>

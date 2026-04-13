@@ -17,13 +17,27 @@ class CrossPlatformProjectConan(ConanFile):
         "qt/*:shared": True,
         "qt/*:widgets": True,
         "qt/*:gui": True,
+
+        #VTK options
         "vtk/*:qt/*:shared": True,   # ← 确保 VTK 依赖的 Qt 也是 shared
+
+        #GTest options
+        "gtest/*:shared":False,
+        "gtest/*:build_gmock":True,
+        "gtest/*:no_main":False,
+
+        # Boost options
+        "boost/*:shared": False,
+        "boost/*:without_locale": False,       
     }
 
     def requirements(self):
         self.requires("qt/[~5.15]")
         self.requires("vtk/[~9.3]")
         self.requires("log4qt/[~1.5]")
+        self.requires("gtest/[~1.17]")
+        self.requires("boost/[~1.90]")
+        self.requires("instrumentortimer/1.0.0")
 
     def layout(self):
         build_type = str(self.settings.build_type)
