@@ -38,6 +38,7 @@ class CrossPlatformProjectConan(ConanFile):
         self.requires("gtest/[~1.17]")
         self.requires("boost/[~1.90]")
         self.requires("instrumentortimer/1.0.0")
+        self.requires("qbreakpad/0.4.0")
 
     def layout(self):
         build_type = str(self.settings.build_type)
