@@ -28,7 +28,17 @@ class CrossPlatformProjectConan(ConanFile):
 
         # Boost options
         "boost/*:shared": False,
-        "boost/*:without_locale": False,       
+        "boost/*:without_locale": False,      
+        
+        "qt-advanced-docking-system/*:shared":True,
+        "fftw/*:shared":True,
+        "gsl/*:shared":True,
+        "matio/*:shared":True,
+        "quazip/*:shared":True,
+
+        "opencv/*:shared":True,
+        
+         
     }
 
     def requirements(self):
@@ -39,7 +49,15 @@ class CrossPlatformProjectConan(ConanFile):
         self.requires("boost/[~1.90]")
         self.requires("instrumentortimer/1.0.0")
         self.requires("qbreakpad/0.4.0")
-
+        self.requires("qt-advanced-docking-system/4.3.1")
+        self.requires("fftw/3.3.10")
+        self.requires("gsl/2.7.1")
+        self.requires("matio/1.5.27")
+        self.requires("eigen/3.4.0")#opencv/4.13 demand eigen/3.4.0
+        self.requires("quazip/1.4")
+        self.requires("opencv/4.13.0")
+        self.requires("opengl/system")
+        
     def layout(self):
         build_type = str(self.settings.build_type)
         self.folders.generators = os.path.join("conan", build_type)
