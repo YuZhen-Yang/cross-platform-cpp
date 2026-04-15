@@ -1,3 +1,6 @@
 [submodule "third_party/qBreakpad"]
 	path = third_party/qBreakpad
 	url = https://github.com/YuZhen-Yang/qBreakpad.git
+[submodule "third_party/Qt-Advanced-Docking-System"]
+	path = third_party/Qt-Advanced-Docking-System
+	url = https://github.com/YuZhen-Yang/Qt-Advanced-Docking-System.git
