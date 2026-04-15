@@ -1,0 +1,2 @@
+add_subdirectory(vtk_qt)
+add_subdirectory(advanced_docking)

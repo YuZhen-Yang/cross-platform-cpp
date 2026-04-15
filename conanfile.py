@@ -30,9 +30,9 @@ class CrossPlatformProjectConan(ConanFile):
         "boost/*:shared": False,
         "boost/*:without_locale": False,      
         
-        "qt-advanced-docking-system/*:shared":True,
+        "qt-advanced-docking-system-custom/*:shared":True,
         "fftw/*:shared":True,
-        "gsl/*:shared":True,
+        "gsl/*:shared":False,
         "matio/*:shared":True,
         "quazip/*:shared":True,
 
@@ -49,7 +49,7 @@ class CrossPlatformProjectConan(ConanFile):
         self.requires("boost/[~1.90]")
         self.requires("instrumentortimer/1.0.0")
         self.requires("qbreakpad/0.4.0")
-        self.requires("qt-advanced-docking-system/4.3.1")
+        self.requires("qt-advanced-docking-system-custom/4.5.0")
         self.requires("fftw/3.3.10")
         self.requires("gsl/2.7.1")
         self.requires("matio/1.5.27")
