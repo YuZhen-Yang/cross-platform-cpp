@@ -48,7 +48,7 @@ class CrossPlatformProjectConan(ConanFile):
         self.requires("gtest/[~1.17]")
         self.requires("boost/[~1.90]")
         self.requires("instrumentortimer/1.0.0")
-        self.requires("qbreakpad/0.4.0")
+        self.requires("qbreakpad/0.4.1")
         self.requires("qt-advanced-docking-system-custom/4.5.0")
         self.requires("fftw/3.3.10")
         self.requires("gsl/2.7.1")
