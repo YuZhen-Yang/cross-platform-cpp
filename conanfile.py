@@ -57,7 +57,10 @@ class CrossPlatformProjectConan(ConanFile):
         self.requires("quazip/1.4")
         self.requires("opencv/4.13.0")
         self.requires("opengl/system")
-        
+
+        #others
+        self.requires("xkbcommon/1.6.0", override=True)# linux arm 平台：opencv 4 要求该版本
+
     def layout(self):
         build_type = str(self.settings.build_type)
         self.folders.generators = os.path.join("conan", build_type)
