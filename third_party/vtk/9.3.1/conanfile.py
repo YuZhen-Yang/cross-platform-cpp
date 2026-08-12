@@ -225,6 +225,8 @@ class VTKConan(ConanFile):
             "vtk-%s" % self.short_version
         )
         self.cpp_info.set_property("cmake_find_mode", "none")
+        self.cpp_info.set_property("cmake_file_name","VTK")# 该名称会影响find_package,conan 默认小写 
+        self.cpp_info.set_property("cmake_file_name_variants", ["VTK", "vtk"])
         self.cpp_info.builddirs = [vtk_cmake_dir]
         return
 
